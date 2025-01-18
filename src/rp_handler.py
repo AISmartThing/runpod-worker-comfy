@@ -1,5 +1,4 @@
 import runpod
-from runpod.serverless.utils import rp_upload
 import json
 import urllib.request
 import urllib.parse
@@ -7,7 +6,10 @@ import time
 import os
 import requests
 import base64
+import uuid
+
 from io import BytesIO
+from src.client.b2_client import B2Client
 
 # Time to wait between API check attempts in milliseconds
 COMFY_API_AVAILABLE_INTERVAL_MS = 50
@@ -22,7 +24,15 @@ COMFY_HOST = "127.0.0.1:8188"
 # Enforce a clean state after each job is done
 # see https://docs.runpod.io/docs/handler-additional-controls#refresh-worker
 REFRESH_WORKER = os.environ.get("REFRESH_WORKER", "false").lower() == "true"
+# The path of comfyui
+COMFY_ROOT_PATH = "/comfyui"
+# b2 related path
+B2_INPUT_IMAGE_PATH = "projects/{project_id}/input_{image_name}.png"
+B2_OUTPUT_IMAGE_PATH = "projects/{project_id}/output_{image_name}.png"
+b2_client = B2Client.get_instance()
 
+def generate_project_id():
+    return str(uuid.uuid4())
 
 def validate_input(job_input):
     """
@@ -55,11 +65,11 @@ def validate_input(job_input):
     images = job_input.get("images")
     if images is not None:
         if not isinstance(images, list) or not all(
-            "name" in image and "image" in image for image in images
+            "name" in image and "url" in image for image in images
         ):
             return (
                 None,
-                "'images' must be a list of objects with 'name' and 'image' keys",
+                "'images' must be a list of objects with 'name' and 'image_url' keys",
             )
 
     # Return validated data and no error
@@ -100,7 +110,7 @@ def check_server(url, retries=500, delay=50):
     return False
 
 
-def upload_images(images):
+def upload_images(project_id, images):
     """
     Upload a list of base64 encoded images to the ComfyUI server using the /upload/image endpoint.
 
@@ -121,8 +131,11 @@ def upload_images(images):
 
     for image in images:
         name = image["name"]
-        image_data = image["image"]
-        blob = base64.b64decode(image_data)
+        url = image["url"]
+
+        # Download the image from the URL
+        response = requests.get(url)
+        blob = response.content
 
         # Prepare the form data
         files = {
@@ -136,6 +149,10 @@ def upload_images(images):
             upload_errors.append(f"Error uploading {name}: {response.text}")
         else:
             responses.append(f"Successfully uploaded {name}")
+
+        # upload image to b2
+        img_b2_path = B2_INPUT_IMAGE_PATH.format(project_id=project_id, image_name=name)
+        b2_client.upload_file(f"{COMFY_ROOT_PATH}/input/{name}.png", img_b2_path)
 
     if upload_errors:
         print(f"runpod-worker-comfy - image(s) upload with errors")
@@ -200,7 +217,7 @@ def base64_encode(img_path):
         return f"{encoded_string}"
 
 
-def process_output_images(outputs, job_id):
+def process_output_images(outputs, job_id, project_id):
     """
     This function takes the "outputs" from image generation and the job ID,
     then determines the correct way to return the image, either as a direct URL
@@ -211,7 +228,7 @@ def process_output_images(outputs, job_id):
         outputs (dict): A dictionary containing the outputs from image generation,
                         typically includes node IDs and their respective output data.
         job_id (str): The unique identifier for the job.
-
+        project_id (str): The unique identifier for the project.
     Returns:
         dict: A dictionary with the status ('success' or 'error') and the message,
               which is either the URL to the image in the AWS S3 bucket or a base64
@@ -232,45 +249,49 @@ def process_output_images(outputs, job_id):
     # The path where ComfyUI stores the generated images
     COMFY_OUTPUT_PATH = os.environ.get("COMFY_OUTPUT_PATH", "/comfyui/output")
 
-    output_images = {}
+    output_images = []
 
     for node_id, node_output in outputs.items():
-        if "images" in node_output:
-            for image in node_output["images"]:
-                output_images = os.path.join(image["subfolder"], image["filename"])
+        if "images" not in node_output:
+            continue
+
+        for image in node_output["images"]:
+            image_path = os.path.join(image["subfolder"], image["filename"])
+            output_images.append(image_path)
 
     print(f"runpod-worker-comfy - image generation is done")
 
     # expected image output folder
-    local_image_path = f"{COMFY_OUTPUT_PATH}/{output_images}"
 
-    print(f"runpod-worker-comfy - {local_image_path}")
+    print(f"runpod-worker-comfy - {output_images}")
 
     # The image is in the output folder
-    if os.path.exists(local_image_path):
-        if os.environ.get("BUCKET_ENDPOINT_URL", False):
-            # URL to image in AWS S3
-            image = rp_upload.upload_image(job_id, local_image_path)
-            print(
-                "runpod-worker-comfy - the image was generated and uploaded to AWS S3"
-            )
+    result = {
+        "status": "success",
+        "message": "All images uploaded successfully",
+        "output": {
+            "images": []
+        },
+    }
+    for image_path in output_images:
+        image_name = image_path.split("/")[-1]
+        whole_image_path = f"{COMFY_OUTPUT_PATH}/{image_path}"
+        if os.path.exists(whole_image_path):
+            img_b2_path = B2_OUTPUT_IMAGE_PATH.format(project_id=project_id, image_name=image_name)
+            b2_client.upload_file(whole_image_path, img_b2_path)
+            b2_url = b2_client.get_download_url(img_b2_path)
+            result["output"]["images"].append({
+                "name": image_name,
+                "url": b2_url
+            })
         else:
-            # base64 image
-            image = base64_encode(local_image_path)
-            print(
-                "runpod-worker-comfy - the image was generated and converted to base64"
-            )
+            print("runpod-worker-comfy - the image does not exist in the output folder")
+            return {
+                "status": "error",
+                "message": f"the image does not exist in the specified output folder: {local_image_path}",
+            }
 
-        return {
-            "status": "success",
-            "message": image,
-        }
-    else:
-        print("runpod-worker-comfy - the image does not exist in the output folder")
-        return {
-            "status": "error",
-            "message": f"the image does not exist in the specified output folder: {local_image_path}",
-        }
+    return result
 
 
 def handler(job):
@@ -304,8 +325,14 @@ def handler(job):
         COMFY_API_AVAILABLE_INTERVAL_MS,
     )
 
+    # generate project_id
+    if job_input.get("project_id"):
+        project_id = job_input.get("project_id")
+    else:
+        project_id = generate_project_id()
+
     # Upload images if they exist
-    upload_result = upload_images(images)
+    upload_result = upload_images(project_id, images)
 
     if upload_result["status"] == "error":
         return upload_result
@@ -338,9 +365,9 @@ def handler(job):
         return {"error": f"Error waiting for image generation: {str(e)}"}
 
     # Get the generated image and return it as URL in an AWS bucket or as base64
-    images_result = process_output_images(history[prompt_id].get("outputs"), job["id"])
+    images_result = process_output_images(history[prompt_id].get("outputs"), job["id"], project_id)
 
-    result = {**images_result, "refresh_worker": REFRESH_WORKER}
+    result = {**images_result, "refresh_worker": REFRESH_WORKER, "project_id": project_id}
 
     return result
 

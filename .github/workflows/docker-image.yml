@@ -3,9 +3,13 @@ name: Build and Push Docker Image
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Docker image tag (default: latest)'
+        required: false
+        default: 'latest'
+        type: string
 
 jobs:
   build:
@@ -31,12 +35,12 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile  # Specify Dockerfile location if not in root
+          file: ./Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/runpod-worker-comfy:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/runpod-worker-comfy:${{ inputs.tag || 'latest' }}
           build-args: |
             CUDA_VERSION=11.8.0
             PYTHON_VERSION=3.10
-          platforms: linux/amd64  # Specify platform(s)
+          platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
