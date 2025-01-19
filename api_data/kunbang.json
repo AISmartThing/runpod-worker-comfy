@@ -2,11 +2,11 @@
   "input": {
     "images": [
       {
-        "name": "lyfface",
+        "name": "lyfface.jpeg",
         "url": "https://home-rating.oss-cn-beijing.aliyuncs.com/test_input_img/lyfface.jpeg?Expires=1737256583&OSSAccessKeyId=TMP.3KghcvaArZoXP1TpoHDP9fi1jcVb63BcSv2yUDAtgUq6CCREenv15MQGPwcQTqEzLyuKZGBtqAiDknceLkCs7QRYtqu5Yx&Signature=DQISPVnn%2Fn%2BSh%2F%2BRrZuaTbteWSM%3D"
       },
       {
-        "name": "right_mask",
+        "name": "right_mask.jpg",
         "url": "https://home-rating.oss-cn-beijing.aliyuncs.com/test_input_img/19210011-02-01.jpg?Expires=1737257154&OSSAccessKeyId=TMP.3KghcvaArZoXP1TpoHDP9fi1jcVb63BcSv2yUDAtgUq6CCREenv15MQGPwcQTqEzLyuKZGBtqAiDknceLkCs7QRYtqu5Yx&Signature=SWYRD%2BH3ERAxOIxhQbSdiQk5qU0%3D"
       }
     ],
@@ -110,7 +110,7 @@
       },
       "7": {
         "inputs": {
-          "image": "right_mask.png",
+          "image": "right_mask.jpg",
           "upload": "image"
         },
         "class_type": "LoadImage",
@@ -175,7 +175,7 @@
       },
       "13": {
         "inputs": {
-          "image": "lyfface.png",
+          "image": "lyfface.jpeg",
           "upload": "image"
         },
         "class_type": "LoadImage",
