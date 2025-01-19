@@ -85,8 +85,7 @@ class B2Client:
             str: Download URL if successful, None otherwise
         """
         try:
-            file_info = self.bucket.get_file_info_by_name(b2_path)
-            url = self.bucket.get_download_url(file_info.id_)
+            url = self.bucket.get_download_url(b2_path)
             logging.info(f"Generated download URL for {b2_path}")
             return url
         except Exception as e:
