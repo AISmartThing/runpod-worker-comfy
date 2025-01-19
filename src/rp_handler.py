@@ -136,10 +136,13 @@ def upload_images(project_id, images):
         # Download the image from the URL
         response = requests.get(url)
         blob = response.content
-
+        
+        # Detect content type from response headers or fallback to png
+        content_type = response.headers.get('content-type', 'image/png')
+        
         # Prepare the form data
         files = {
-            "image": (name, BytesIO(blob), "image/png"),
+            "image": (name, BytesIO(blob), content_type),
             "overwrite": (None, "true"),
         }
 
@@ -152,7 +155,7 @@ def upload_images(project_id, images):
 
         # upload image to b2
         img_b2_path = B2_INPUT_IMAGE_PATH.format(project_id=project_id, image_name=name)
-        b2_client.upload_file(f"{COMFY_ROOT_PATH}/input/{name}.png", img_b2_path)
+        b2_client.upload_file(f"{COMFY_ROOT_PATH}/input/{name}", img_b2_path)
 
     if upload_errors:
         print(f"runpod-worker-comfy - image(s) upload with errors")
