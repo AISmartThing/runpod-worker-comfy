@@ -7,14 +7,22 @@ import os
 import requests
 import base64
 import uuid
+import logging
 
 from io import BytesIO
 from src.client.b2_client import B2Client
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 # Time to wait between API check attempts in milliseconds
-COMFY_API_AVAILABLE_INTERVAL_MS = 50
+COMFY_API_AVAILABLE_INTERVAL_MS = 1000
 # Maximum number of API check attempts
-COMFY_API_AVAILABLE_MAX_RETRIES = 500
+COMFY_API_AVAILABLE_MAX_RETRIES = 600
 # Time to wait between poll attempts in milliseconds
 COMFY_POLLING_INTERVAL_MS = int(os.environ.get("COMFY_POLLING_INTERVAL_MS", 250))
 # Maximum number of poll attempts
@@ -95,8 +103,8 @@ def check_server(url, retries=500, delay=50):
 
             # If the response status code is 200, the server is up and running
             if response.status_code == 200:
-                print(f"runpod-worker-comfy - API is reachable")
-                return True
+                logger.info(f"runpod-worker-comfy - API is reachable")
+                return
         except requests.RequestException as e:
             # If an exception occurs, the server may not be ready
             pass
@@ -104,11 +112,8 @@ def check_server(url, retries=500, delay=50):
         # Wait for the specified delay before retrying
         time.sleep(delay / 1000)
 
-    print(
-        f"runpod-worker-comfy - Failed to connect to server at {url} after {retries} attempts."
-    )
-    return False
-
+    raise Exception(f"Failed to connect to server at {url} after {retries} attempts.")
+    
 
 def upload_images(project_id, images):
     """
@@ -127,7 +132,7 @@ def upload_images(project_id, images):
     responses = []
     upload_errors = []
 
-    print(f"runpod-worker-comfy - image(s) upload")
+    logger.info("Starting image(s) upload")
 
     for image in images:
         name = image["name"]
@@ -158,14 +163,14 @@ def upload_images(project_id, images):
         b2_client.upload_file(f"{COMFY_ROOT_PATH}/input/{name}", img_b2_path)
 
     if upload_errors:
-        print(f"runpod-worker-comfy - image(s) upload with errors")
+        logger.error("Image(s) upload completed with errors")
         return {
             "status": "error",
             "message": "Some images failed to upload",
             "details": upload_errors,
         }
 
-    print(f"runpod-worker-comfy - image(s) upload complete")
+    logger.info("Image(s) upload complete")
     return {
         "status": "success",
         "message": "All images uploaded successfully",
@@ -262,11 +267,10 @@ def process_output_images(outputs, job_id, project_id):
             image_path = os.path.join(image["subfolder"], image["filename"])
             output_images.append(image_path)
 
-    print(f"runpod-worker-comfy - image generation is done")
+    logger.info("Image generation is done")
+    logger.info(f"Output images: {output_images}")
 
     # expected image output folder
-
-    print(f"runpod-worker-comfy - {output_images}")
 
     # The image is in the output folder
     result = {
@@ -288,7 +292,7 @@ def process_output_images(outputs, job_id, project_id):
                 "url": b2_url
             })
         else:
-            print("runpod-worker-comfy - the image does not exist in the output folder")
+            logger.error("The image does not exist in the output folder")
             return {
                 "status": "error",
                 "message": f"the image does not exist in the specified output folder: {local_image_path}",
@@ -344,12 +348,12 @@ def handler(job):
     try:
         queued_workflow = queue_workflow(workflow)
         prompt_id = queued_workflow["prompt_id"]
-        print(f"runpod-worker-comfy - queued workflow with ID {prompt_id}")
+        logger.info(f"Queued workflow with ID {prompt_id}")
     except Exception as e:
-        return {"error": f"Error queuing workflow: {str(e)}"}
+        return {"error": f"Error queuing workflow: {str(e)}", "project_id": project_id}
 
     # Poll for completion
-    print(f"runpod-worker-comfy - wait until image generation is complete")
+    logger.info("Waiting until image generation is complete")
     retries = 0
     try:
         while retries < COMFY_POLLING_MAX_RETRIES:
@@ -365,7 +369,7 @@ def handler(job):
         else:
             return {"error": "Max retries reached while waiting for image generation"}
     except Exception as e:
-        return {"error": f"Error waiting for image generation: {str(e)}"}
+        return {"error": f"Error waiting for image generation: {str(e)}", "project_id": project_id}
 
     # Get the generated image and return it as URL in an AWS bucket or as base64
     images_result = process_output_images(history[prompt_id].get("outputs"), job["id"], project_id)

@@ -85,7 +85,7 @@
       },
       "5": {
         "inputs": {
-          "noise_seed": 707976462074039
+          "noise_seed": 423168974525452
         },
         "class_type": "RandomNoise",
         "_meta": {
@@ -312,6 +312,19 @@
         "class_type": "Power Lora Loader (rgthree)",
         "_meta": {
           "title": "Power Lora Loader (rgthree)"
+        }
+      },
+      "22": {
+        "inputs": {
+          "filename_prefix": "ComfyUI",
+          "images": [
+            "3",
+            0
+          ]
+        },
+        "class_type": "SaveImage",
+        "_meta": {
+          "title": "Save Image"
         }
       }
     }
