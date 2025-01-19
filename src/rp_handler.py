@@ -282,7 +282,7 @@ def process_output_images(outputs, job_id, project_id):
         if os.path.exists(whole_image_path):
             img_b2_path = B2_OUTPUT_IMAGE_PATH.format(project_id=project_id, image_name=image_name)
             b2_client.upload_file(whole_image_path, img_b2_path)
-            b2_url = b2_client.get_download_url(img_b2_path)
+            b2_url = b2_client.generate_download_url(img_b2_path)
             result["output"]["images"].append({
                 "name": image_name,
                 "url": b2_url

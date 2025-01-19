@@ -73,7 +73,7 @@ class B2Client:
             logging.error(f"Failed to download {b2_path}: {str(e)}")
             return False
             
-    def generate_download_url(self, b2_path: str, duration_in_seconds: int = 3600) -> Optional[str]:
+    def generate_download_url(self, b2_path: str) -> Optional[str]:
         """
         Generate a download URL for a file
         
