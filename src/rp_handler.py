@@ -27,8 +27,8 @@ REFRESH_WORKER = os.environ.get("REFRESH_WORKER", "false").lower() == "true"
 # The path of comfyui
 COMFY_ROOT_PATH = "/comfyui"
 # b2 related path
-B2_INPUT_IMAGE_PATH = "projects/{project_id}/input_{image_name}.png"
-B2_OUTPUT_IMAGE_PATH = "projects/{project_id}/output_{image_name}.png"
+B2_INPUT_IMAGE_PATH = "projects/{project_id}/input_{image_name}"
+B2_OUTPUT_IMAGE_PATH = "projects/{project_id}/output_{image_name}"
 b2_client = B2Client.get_instance()
 
 def generate_project_id():
