@@ -1,0 +1,332 @@
+{
+  "input": {
+    "images": [
+      {
+        "name": "lyfface.jpeg",
+        "url": "https://home-rating.oss-cn-beijing.aliyuncs.com/test_input_img/lyfface.jpeg?Expires=1737455939&OSSAccessKeyId=TMP.3KdQLdxRNUNejutV8FuNXZVH3apAkQJGSd3vvghB23wUQX98aD2vcnfBBXNJG4a7oAjDGndPCEnYNPwSgsBeqZYqnsCvyo&Signature=slt4faO9a5OYgJDJ4dlUdQpjoA8%3D"
+      },
+      {
+        "name": "right_mask.jpg",
+        "url": "https://home-rating.oss-cn-beijing.aliyuncs.com/test_input_img/19210011-02-01.jpg?Expires=1737455952&OSSAccessKeyId=TMP.3KdQLdxRNUNejutV8FuNXZVH3apAkQJGSd3vvghB23wUQX98aD2vcnfBBXNJG4a7oAjDGndPCEnYNPwSgsBeqZYqnsCvyo&Signature=%2Fmc9E2WY7py414iVEqqrHK0l%2Fg8%3D"
+      }
+    ],
+    "workflow": {
+      "1": {
+        "inputs": {
+          "model": [
+            "20",
+            0
+          ],
+          "conditioning": [
+            "9",
+            0
+          ]
+        },
+        "class_type": "BasicGuider",
+        "_meta": {
+          "title": "BasicGuider"
+        }
+      },
+      "2": {
+        "inputs": {
+          "images": [
+            "3",
+            0
+          ]
+        },
+        "class_type": "PreviewImage",
+        "_meta": {
+          "title": "Preview Image"
+        }
+      },
+      "3": {
+        "inputs": {
+          "samples": [
+            "4",
+            0
+          ],
+          "vae": [
+            "11",
+            0
+          ]
+        },
+        "class_type": "VAEDecode",
+        "_meta": {
+          "title": "VAE Decode"
+        }
+      },
+      "4": {
+        "inputs": {
+          "noise": [
+            "5",
+            0
+          ],
+          "guider": [
+            "1",
+            0
+          ],
+          "sampler": [
+            "8",
+            0
+          ],
+          "sigmas": [
+            "10",
+            0
+          ],
+          "latent_image": [
+            "18",
+            0
+          ]
+        },
+        "class_type": "SamplerCustomAdvanced",
+        "_meta": {
+          "title": "SamplerCustomAdvanced"
+        }
+      },
+      "5": {
+        "inputs": {
+          "noise_seed": 423168974525452
+        },
+        "class_type": "RandomNoise",
+        "_meta": {
+          "title": "RandomNoise"
+        }
+      },
+      "6": {
+        "inputs": {
+          "pixels": [
+            "7",
+            0
+          ],
+          "vae": [
+            "11",
+            0
+          ]
+        },
+        "class_type": "VAEEncode",
+        "_meta": {
+          "title": "VAE Encode"
+        }
+      },
+      "7": {
+        "inputs": {
+          "image": "right_mask.jpg",
+          "upload": "image"
+        },
+        "class_type": "LoadImage",
+        "_meta": {
+          "title": "Load Image"
+        }
+      },
+      "8": {
+        "inputs": {
+          "sampler_name": "euler"
+        },
+        "class_type": "KSamplerSelect",
+        "_meta": {
+          "title": "KSamplerSelect"
+        }
+      },
+      "9": {
+        "inputs": {
+          "guidance": 3.5,
+          "conditioning": [
+            "19",
+            0
+          ]
+        },
+        "class_type": "FluxGuidance",
+        "_meta": {
+          "title": "FluxGuidance"
+        }
+      },
+      "10": {
+        "inputs": {
+          "scheduler": "beta",
+          "steps": 30,
+          "denoise": 1,
+          "model": [
+            "20",
+            0
+          ]
+        },
+        "class_type": "BasicScheduler",
+        "_meta": {
+          "title": "BasicScheduler"
+        }
+      },
+      "11": {
+        "inputs": {
+          "vae_name": "ae.safetensors"
+        },
+        "class_type": "VAELoader",
+        "_meta": {
+          "title": "Load VAE"
+        }
+      },
+      "12": {
+        "inputs": {
+          "pulid_file": "pulid_flux_v0.9.1.safetensors"
+        },
+        "class_type": "PulidFluxModelLoader",
+        "_meta": {
+          "title": "Load PuLID Flux Model"
+        }
+      },
+      "13": {
+        "inputs": {
+          "image": "lyfface.jpeg",
+          "upload": "image"
+        },
+        "class_type": "LoadImage",
+        "_meta": {
+          "title": "Load Image"
+        }
+      },
+      "14": {
+        "inputs": {
+          "provider": "CPU"
+        },
+        "class_type": "PulidFluxInsightFaceLoader",
+        "_meta": {
+          "title": "Load InsightFace (PuLID Flux)"
+        }
+      },
+      "15": {
+        "inputs": {},
+        "class_type": "PulidFluxEvaClipLoader",
+        "_meta": {
+          "title": "Load Eva Clip (PuLID Flux)"
+        }
+      },
+      "16": {
+        "inputs": {
+          "unet_name": "flux1-dev-fp8_unet.safetensors",
+          "weight_dtype": "fp8_e4m3fn"
+        },
+        "class_type": "UNETLoader",
+        "_meta": {
+          "title": "Load Diffusion Model"
+        }
+      },
+      "17": {
+        "inputs": {
+          "clip_name1": "t5xxl_fp8_e4m3fn.safetensors",
+          "clip_name2": "clip_l.safetensors",
+          "type": "flux"
+        },
+        "class_type": "DualCLIPLoader",
+        "_meta": {
+          "title": "DualCLIPLoader"
+        }
+      },
+      "18": {
+        "inputs": {
+          "width": 720,
+          "height": 1024,
+          "batch_size": 1
+        },
+        "class_type": "EmptySD3LatentImage",
+        "_meta": {
+          "title": "EmptySD3LatentImage"
+        }
+      },
+      "19": {
+        "inputs": {
+          "text": "a nude girl is kneeling outside in front of a supermarket, bondage, rope tied, shibari rope harness, she is nude, moaningMasterpiece, Best Quality, (8k, RAW Photo, Best Quality, Masterpiece: 1.2), (Realistic, Photorealistic: 1.37), Stunning 8k fashion photo, ",
+          "clip": [
+            "21",
+            1
+          ]
+        },
+        "class_type": "CLIPTextEncode",
+        "_meta": {
+          "title": "CLIP Text Encode (Prompt)"
+        }
+      },
+      "20": {
+        "inputs": {
+          "weight": 1,
+          "start_at": 0,
+          "end_at": 1,
+          "fusion": "mean",
+          "fusion_weight_max": 1,
+          "fusion_weight_min": 0,
+          "train_step": 6000,
+          "use_gray": true,
+          "model": [
+            "21",
+            0
+          ],
+          "pulid_flux": [
+            "12",
+            0
+          ],
+          "eva_clip": [
+            "15",
+            0
+          ],
+          "face_analysis": [
+            "14",
+            0
+          ],
+          "image": [
+            "13",
+            0
+          ],
+          "attn_mask": [
+            "13",
+            1
+          ]
+        },
+        "class_type": "ApplyPulidFlux",
+        "_meta": {
+          "title": "Apply PuLID Flux"
+        }
+      },
+      "21": {
+        "inputs": {
+          "PowerLoraLoaderHeaderWidget": {
+            "type": "PowerLoraLoaderHeaderWidget"
+          },
+          "lora_1": {
+            "on": true,
+            "lora": "Rope-Bondage-Flux.safetensors",
+            "strength": 1.2
+          },
+          "lora_2": {
+            "on": true,
+            "lora": "photorealistic_nude.safetensors",
+            "strength": 0.5
+          },
+          "➕ Add Lora": "",
+          "model": [
+            "16",
+            0
+          ],
+          "clip": [
+            "17",
+            0
+          ]
+        },
+        "class_type": "Power Lora Loader (rgthree)",
+        "_meta": {
+          "title": "Power Lora Loader (rgthree)"
+        }
+      },
+      "22": {
+        "inputs": {
+          "filename_prefix": "ComfyUI",
+          "images": [
+            "3",
+            0
+          ]
+        },
+        "class_type": "SaveImage",
+        "_meta": {
+          "title": "Save Image"
+        }
+      }
+    }
+  }
+}

@@ -1,5 +1,5 @@
 # Stage 1: Base image with common dependencies
-FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+FROM nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04
 
 # Prevents prompts from packages asking for user input during installation
 ENV DEBIAN_FRONTEND=noninteractive
@@ -17,33 +17,43 @@ RUN apt-get update && apt-get install -y \
     git \
     wget \
     libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxrender1 \
+    libxext6 \
     && ln -sf /usr/bin/python3.10 /usr/bin/python \
     && ln -sf /usr/bin/pip3 /usr/bin/pip
 
 # Clean up to reduce image size
 RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
 # Install comfy-cli
 RUN pip install comfy-cli
 
 # Install ComfyUI
-RUN /usr/bin/yes | comfy --workspace /comfyui install --cuda-version 11.8 --nvidia --version 0.2.7
+RUN /usr/bin/yes | comfy --workspace /comfyui install --cuda-version 12.1 --nvidia --version 0.3.12
 
 # Change working directory to ComfyUI
 WORKDIR /comfyui
 
-# Install runpod
-RUN pip install runpod requests
-
 # Support for the network volume
-ADD src/extra_model_paths.yaml ./
+ADD scripts/extra_model_paths.yaml ./
 
 # Go back to the root
 WORKDIR /
 
 # Add scripts
-ADD src/start.sh src/restore_snapshot.sh src/rp_handler.py test_input.json ./
+ADD scripts/start.sh scripts/restore_snapshot.sh test_input.json ./
 RUN chmod +x /start.sh /restore_snapshot.sh
+
+# Add runpod worker src 
+ADD src/ ./src
+
+ENV PYTHONPATH="${PYTHONPATH}:/"
 
 # Optionally copy the snapshot file
 ADD *snapshot*.json /

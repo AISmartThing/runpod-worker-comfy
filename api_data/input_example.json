@@ -1,0 +1,17 @@
+{
+    "input": {
+        "workflow": {
+            "3": {
+                "inputs": {
+                    "seed": 234234
+                }
+            }
+        },
+        "images": [
+            {
+                "name": "image_1",
+                "url": "https://example.com/image.jpg"
+            }
+        ]
+    }
+}
